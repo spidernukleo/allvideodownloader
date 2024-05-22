@@ -152,7 +152,7 @@ async def main(bot_id):
 
 
 if __name__ == '__main__':
-    TOKEN = '7079219365:AAGpAWwIL4BaOQ3IR4A9TKwgREC4iSsKgWQ'
+    TOKEN = ''
     bot_id = int(TOKEN.split(':')[0])
     loop = asyncio.get_event_loop()
     redis = redis.Redis(host='localhost', port=6379, db=7)
