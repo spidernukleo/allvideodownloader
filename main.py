@@ -145,7 +145,6 @@ async def main(bot_id):
     print('Stopping > ', end='')
     await SESSION.stop()
 
-    await db.close()
     loop.stop()
     print('stopped!\n')
     exit()
