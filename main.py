@@ -12,6 +12,8 @@ import re
 import subprocess, random
 import requests
 import bs4
+from pytube import YouTube
+
 
 # Genera sessione pyro
 async def pyro(token):
@@ -103,12 +105,16 @@ async def bot_handler(bot, message):
 
 async def scaricaMandaYT(bot, url, chatid, replyid):
     try:
-        nome = str(random.randint(1,1000000))+".mp4"
-        process = await asyncio.create_subprocess_exec('yt-dlp', '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4', '-o', nome, url)
-        await process.wait()  # Wait for the subprocess to complete
+        nome = str(random.randint(1,1000000))
+        yt = YouTube(url)
+        if yt.length >= 1800:
+            return await bot.send_message(chatid, "❗ Durata massima video: 30 minuti.", reply_to_message_id=replyid)
+        else:
+            stream = yt.streams.get_highest_resolution()
+            stream.download(filename=nome+".mp4")
         asyncio.create_task(send_video_async(bot, chatid, nome+".mp4", replyid))
     except Exception as e:
-        return await bot.send_message(chatid, "❗ Non sono riuscito a scaricare il video, riprova più tardi o contatta @nukleodev", reply_to_message_id=replyid)
+        await bot.send_message(chatid, "❗ Non sono riuscito a scaricare il video, riprova più tardi o contatta @nukleodev", reply_to_message_id=replyid)
 
 async def scaricaMandaX(bot, url, chatid, replyid):
     try:
