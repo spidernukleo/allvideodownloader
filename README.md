@@ -5,5 +5,6 @@ https://t.me/all_videodownloaderbot
 made with pyrogram and redis
 
 trying to understand how to download everything directly from the source without using external libraries
-by now implemented: YOUTUBE
-to do: TIKTOK, INSTAGRAM, X
+by now implemented: YOUTUBE, X (less or more)
+
+to do: TIKTOK, INSTAGRAM
