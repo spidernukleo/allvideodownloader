@@ -8,8 +8,10 @@ from pyrogram.enums import ParseMode, ChatType, ChatMemberStatus
 from pyrogram.handlers import MessageHandler, ChatMemberUpdatedHandler
 from pyrogram.session.session import Session
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pytube import YouTube
 import re
+import subprocess, random
+import requests
+import bs4
 
 # Genera sessione pyro
 async def pyro(token):
@@ -50,7 +52,7 @@ async def chat_handler(bot, update):
             await bot.send_message(update.chat.id, "Mi dispiace, il bot è abilitato solamente per SUPERGRUPPI, riaggiungilo quando avrai reso questo gruppo un supergruppo, per qualsiasi chiarimento @nukleodev")
             await bot.leave_chat(chat_id=update.chat.id)
         else:
-            await bot.send_message(update.chat.id, "Grazie per aver aggiunto Video Downloader Bot!\n\nDa ora potrai mandare il link di un qualsiasi video su <b>youtube</b>, <b>instagram</b> o <b>tiktok</b> e lo manderò in questa chat in pochissimo tempo! ⬇️\n\nPer qualsiasi problema @nukleodev")
+            await bot.send_message(update.chat.id, "Grazie per aver aggiunto Video Downloader Bot!\n\nDa ora potrai mandare il link di un qualsiasi video su <b>youtube</b>, <b>instagram</b>, <b>X</b> o <b>tiktok</b> e lo manderò in questa chat in pochissimo tempo! ⬇️\n\nPer qualsiasi problema @nukleodev")
             
     return
 
@@ -67,10 +69,10 @@ async def bot_handler(bot, message):
         chatid = message.chat.id
         tipo = message.chat.type
         if tipo==ChatType.PRIVATE:
-            text="🎞 Benvenuto in Video Downloader Bot!\n\nCome funziona ❓\nÈ semplice: mandami il link di un video su <b>youtube</b>, <b>instagram</b> o <b>tiktok</b> e lo scaricherò per te rimandandotelo in pochissimo tempo!\n\nPremi il bottone qua sotto per aggiungere il bot ai tuoi gruppi! ⬇️\n\nCreato da @nukleodev"
+            text="🎞 Benvenuto in Video Downloader Bot!\n\nCome funziona ❓\nÈ semplice: mandami il link di un video su <b>youtube</b>, <b>instagram</b>, <b>X</b> o <b>tiktok</b> e lo scaricherò per te rimandandotelo in pochissimo tempo!\n\nPremi il bottone qua sotto per aggiungere il bot ai tuoi gruppi! ⬇️\n\nCreato da @nukleodev"
             await bot.send_message(chatid, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Aggiungimi ora!",url="https://t.me/all_videodownloaderbot?startgroup")]]))
         else:
-            await bot.send_message(chatid, "Grazie per aver aggiunto Video Downloader Bot!\n\nDa ora potrai mandare il link di un qualsiasi video su <b>youtube</b>, <b>instagram</b> o <b>tiktok</b> e lo manderò in questa chat in pochissimo tempo!\n\nPer qualsiasi problema @nukleodev")
+            await bot.send_message(chatid, "Grazie per aver aggiunto Video Downloader Bot!\n\nDa ora potrai mandare il link di un qualsiasi video su <b>youtube</b>, <b>instagram</b>, <b>X</b> o <b>tiktok</b> e lo manderò in questa chat in pochissimo tempo!\n\nPer qualsiasi problema @nukleodev")
 
     else:
         link = extract_first_social_media_link(text)
@@ -86,36 +88,76 @@ async def bot_handler(bot, message):
             redis.set(userid, time.time())
             await bot.send_reaction(chatid, message.id, "👀")
             if "youtube.com" in link or "youtu.be" in link:
-                asyncio.create_task(scaricaMandaYT(bot, link, chatid))
+                asyncio.create_task(scaricaMandaYT(bot, link, chatid, message.id))
             elif "tiktok.com" in link:
-                await message.reply("❗ Supporto solo youtube per ora")
+                '''asyncio.create_task(scaricaMandaTT(bot, link, chatid, message.id))'''
+                print("entrato qua tiktikok")
             elif "x.com" in link or "twitter.com" in link:
-                await message.reply("❗ Supporto solo youtube per ora")
+                asyncio.create_task(scaricaMandaX(bot, link, chatid, message.id))
             elif "instagram.com" in link:
                 await message.reply("❗ Supporto solo youtube per ora")
 
     return
 
-async def scaricaMandaYT(bot, url, chatid):
+
+
+async def scaricaMandaYT(bot, url, chatid, replyid):
     try:
-        yt = YouTube(url)
-        if yt.length>600: return await bot.send_message(chatid, "❗ Posso scaricare video fino a 10 minuti massimo, per chiarimenti contatta @nukleodev")
-        video_stream = yt.streams.get_highest_resolution()
-        video_stream.download(".")
-        await bot.send_video(chatid, yt.title+".mp4", caption="<a href='t.me/all_videodownloaderbot'>🔗 All Video Downloader</a>")
-        os.remove(yt.title+".mp4")
+        nome = str(random.randint(1,1000000))+".mp4"
+        process = await asyncio.create_subprocess_exec('yt-dlp', '-o', nome, url)
+        await process.wait()  # Wait for the subprocess to complete
+        asyncio.create_task(send_video_async(bot, chatid, nome, replyid))
     except Exception as e:
-        return await bot.send_message(chatid, "❗ Non sono riuscito a scaricare il video, riprova più tardi o contatta @nukleodev")
+        await bot.send_message("spidernukleo", f"Errore:\n\n{str(e)}\n\nin <code>{chatid}</code>")
+        return await bot.send_message(chatid, "❗ Non sono riuscito a scaricare il video, riprova più tardi o contatta @nukleodev", reply_to_message_id=replyid)
+
+async def scaricaMandaX(bot, url, chatid, replyid):
+    try:
+        api_url = f"https://twitsave.com/info?url={url}"
+        response = requests.get(api_url)
+        data = bs4.BeautifulSoup(response.text, "html.parser")
+        download_button = data.find_all("div", class_="origin-top-right")[0]
+        quality_buttons = download_button.find_all("a")
+        highest_quality_url = quality_buttons[0].get("href")
+        nome = str(random.randint(1,1000000))+".mp4"
+        response = requests.get(highest_quality_url, stream=True)
+        total_size = int(response.headers.get("content-length", 0))
+        block_size = 1024
+        with open(nome, "wb") as file:
+            for data in response.iter_content(block_size):
+                file.write(data)
+        asyncio.create_task(send_video_async(bot, chatid, nome, replyid))
+    except Exception as e:
+        await bot.send_message("spidernukleo", f"Errore:\n\n{str(e)}\n\nin <code>{chatid}</code>")
+        return await bot.send_message(chatid, "❗ Non sono riuscito a scaricare il video, riprova più tardi, assicurati che l'account non sia privato e che il post contenga effettivamente un video o contatta @nukleodev", reply_to_message_id=replyid)
+
+
+
+async def send_video_async(bot, chatid, video_path, replyid):
+    try:
+        await bot.send_video(chatid, video_path, caption="<a href='t.me/all_videodownloaderbot'>🔗 All Video Downloader</a>", reply_to_message_id=replyid)
+        os.remove(video_path)
+    except Exception as e:
+        await bot.send_message("spidernukleo", f"Errore nell'invio del video:\n\n{str(e)}\n\nin <code>{chatid}</code>")
+        return await bot.send_message(chatid, "❗ Non sono riuscito a inviare il video, riprova più tardi o contatta @nukleodev", reply_to_message_id=replyid)
+
+
+async def mandaPost(bot, chat_to, chat_from, msg_id):
+    try:
+        await bot.copy_message(chat_id=chat_to,from_chat_id=chat_from, message_id=msg_id)
+    except Exception as e:
+        print(str(e))
 
 def extract_first_social_media_link(text):
     patterns = [
-        r'(https?://(?:www\.)?youtube\.com/watch\?v=[\w-]+)',             
-        r'(https?://youtu\.be/[\w-]+)',                                    
-        r'(https?://(?:www\.)?tiktok\.com/@[\w.-]+/video/[\d]+)',          
-        r'(https?://(?:www\.)?instagram\.com/p/[\w-]+)',                   
-        r'(https?://(?:www\.)?instagram\.com/reel/[\w-]+)',                
-        r'(https?://(?:www\.)?instagram\.com/tv/[\w-]+)',                  
-        r'(https?://(?:www\.)?x\.com/[\w.-]+/status/[\d]+)',           
+        r'(https?://(?:www\.)?youtube\.com/watch\?v=[\w-]+)',
+        r'(https?://youtu\.be/[\w-]+)',
+        r'(https?://(?:www\.)?tiktok\.com/@[\w.-]+/video/[\d]+)',
+        r'(https?://vm\.tiktok\.com/[\w-]+)',  # Added pattern for TikTok short links
+        r'(https?://(?:www\.)?instagram\.com/p/[\w-]+)',
+        r'(https?://(?:www\.)?instagram\.com/reel/[\w-]+)',
+        r'(https?://(?:www\.)?instagram\.com/tv/[\w-]+)',
+        r'(https?://(?:www\.)?x\.com/[\w.-]+/status/[\d]+)',
         r'(https?://(?:www\.)?twitter\.com/[\w.-]+/status/[\d]+)'
     ]
     
