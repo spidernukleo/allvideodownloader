@@ -104,11 +104,10 @@ async def bot_handler(bot, message):
 async def scaricaMandaYT(bot, url, chatid, replyid):
     try:
         nome = str(random.randint(1,1000000))+".mp4"
-        process = await asyncio.create_subprocess_exec('yt-dlp', '-o', nome, url)
+        process = await asyncio.create_subprocess_exec('yt-dlp', '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4', '-o', nome, url)
         await process.wait()  # Wait for the subprocess to complete
-        asyncio.create_task(send_video_async(bot, chatid, nome, replyid))
+        asyncio.create_task(send_video_async(bot, chatid, nome+".mp4", replyid))
     except Exception as e:
-        await bot.send_message("spidernukleo", f"Errore:\n\n{str(e)}\n\nin <code>{chatid}</code>")
         return await bot.send_message(chatid, "❗ Non sono riuscito a scaricare il video, riprova più tardi o contatta @nukleodev", reply_to_message_id=replyid)
 
 async def scaricaMandaX(bot, url, chatid, replyid):
@@ -128,17 +127,15 @@ async def scaricaMandaX(bot, url, chatid, replyid):
                 file.write(data)
         asyncio.create_task(send_video_async(bot, chatid, nome, replyid))
     except Exception as e:
-        await bot.send_message("spidernukleo", f"Errore:\n\n{str(e)}\n\nin <code>{chatid}</code>")
         return await bot.send_message(chatid, "❗ Non sono riuscito a scaricare il video, riprova più tardi, assicurati che l'account non sia privato e che il post contenga effettivamente un video o contatta @nukleodev", reply_to_message_id=replyid)
 
 
 
-async def send_video_async(bot, chatid, video_path, replyid):
+async def send_video_async(bot, chatid, nome, replyid):
     try:
-        await bot.send_video(chatid, video_path, caption="<a href='t.me/all_videodownloaderbot'>🔗 All Video Downloader</a>", reply_to_message_id=replyid)
-        os.remove(video_path)
+        await bot.send_video(chatid, nome, caption="<a href='t.me/all_videodownloaderbot'>🔗 All Video Downloader</a>", reply_to_message_id=replyid)
+        os.remove(nome)
     except Exception as e:
-        await bot.send_message("spidernukleo", f"Errore nell'invio del video:\n\n{str(e)}\n\nin <code>{chatid}</code>")
         return await bot.send_message(chatid, "❗ Non sono riuscito a inviare il video, riprova più tardi o contatta @nukleodev", reply_to_message_id=replyid)
 
 
